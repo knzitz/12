@@ -18,37 +18,20 @@ export default function Navbar() {
 
   const getNavLinks = () => {
     if (user) {
-      if (user.role === 'creator') {
-        return [
-          { path: '/dashboard', label: 'Dashboard' },
-          { path: '/creators-membership', label: 'Membership' },
-          { path: '/portfolio', label: 'Portfolio' },
-          { path: '/content', label: 'Content' },
-          { path: '/media', label: 'Media' },
-          { path: '/masterclass', label: 'Masterclass' },
-          { path: '/projects', label: 'Projects' },
-          { path: '/events', label: 'Events' },
-          { path: '/books', label: 'Books' },
-        ];
-      } else {
-        return [
-          { path: '/settings', label: 'Settings' },
-          { path: '/account', label: 'Account' },
-          { path: '/connect', label: 'Connect' },
-          { path: '/members-membership', label: 'Membership' },
-          { path: '/media', label: 'Media' },
-          { path: '/masterclass', label: 'Masterclass' },
-          { path: '/projects', label: 'Projects' },
-          { path: '/events', label: 'Events' },
-          { path: '/books', label: 'Books' },
-        ];
-      }
+      // Contractor/Business routes
+      return [
+        { path: '/dashboard', label: 'Dashboard' },
+        { path: '/tenders', label: 'Tenders' },
+        { path: '/contracts', label: 'Contracts' },
+        { path: '/compliance', label: 'Compliance' },
+        { path: '/directory', label: 'Directory' },
+        { path: '/works-gallery', label: 'Gallery' },
+        { path: '/books', label: 'Books' },
+      ];
     } else {
       return [
-        { path: '/media', label: 'Media' },
-        { path: '/masterclass', label: 'Masterclass' },
-        { path: '/projects', label: 'Projects' },
-        { path: '/events', label: 'Events' },
+        { path: '/tenders', label: 'Opportunities' },
+        { path: '/directory', label: 'Providers' },
       ];
     }
   };
@@ -62,9 +45,11 @@ export default function Navbar() {
           {/* Left Section */}
           <div className="flex-1 flex items-center justify-start">
             <Link to="/" className="flex items-center space-x-2">
-              <Crown className="w-8 h-8 text-rose-400" />
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">E</span>
+              </div>
               {!user && (
-                <span className="text-2xl font-playfair font-bold gradient-text">FlourishTalents</span>
+                <span className="text-2xl font-playfair font-bold text-white">Empowise</span>
               )}
             </Link>
           </div>

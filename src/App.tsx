@@ -27,6 +27,14 @@ import Settings from './pages/Settings';
 import Books from './pages/Books';
 import BooksCallback from './pages/BooksCallback';
 
+// EMPOWISE CONTRACTOR ROUTES (New)
+// TODO: Create these page components
+// import Tenders from './pages/contractor/Tenders';
+// import ContractDetails from './pages/contractor/ContractDetails';
+// import ComplianceVault from './pages/contractor/ComplianceVault';
+// import ProfessionalDirectory from './pages/contractor/ProfessionalDirectory';
+// import WorksGallery from './pages/contractor/WorksGallery';
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
@@ -171,6 +179,35 @@ function App() {
         />
         <Route path="/books/callback" element={<BooksCallback />} />
         <Route path="/profile" element={<LandingPage />} />
+
+        {/* ============================================================================ */}
+        {/* EMPOWISE CONTRACTOR PLATFORM ROUTES (NEW) */}
+        {/* ============================================================================ */}
+
+        {/* Tenders & Bidding */}
+        {/* <Route path="/tenders" element={<Tenders />} /> */}
+        {/* <Route path="/tenders/:tenderId" element={<TenderDetails />} /> */}
+        {/* <Route path="/tenders/:tenderId/bid" element={<CreateBid />} /> */}
+
+        {/* Contract Management */}
+        {/* <Route path="/contracts" element={<ContractsList />} /> */}
+        {/* <Route path="/contracts/:contractId" element={<ContractDetails />} /> */}
+        {/* <Route path="/contracts/:contractId/milestones" element={<MilestonesList />} /> */}
+        {/* <Route path="/milestones/:milestoneId/verify" element={<PhotoLockVerification />} /> */}
+
+        {/* Compliance & Documents */}
+        {/* <Route path="/compliance" element={<ComplianceVault />} /> */}
+        {/* <Route path="/compliance/renewals" element={<ComplianceRenewals />} /> */}
+
+        {/* Professional Network */}
+        {/* <Route path="/directory" element={<ProfessionalDirectory />} /> */}
+        {/* <Route path="/directory/:contractorId" element={<ContractorProfile />} /> */}
+        {/* <Route path="/messages" element={<DirectMessages />} /> */}
+
+        {/* Works Gallery */}
+        {/* <Route path="/works-gallery" element={<WorksGallery />} /> */}
+
+        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
