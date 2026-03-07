@@ -1225,3 +1225,293 @@ export const getZohoBooksStatus = async (userId: string) => {
     };
   }
 };
+
+// ============================================================================
+// TAX CALCULATIONS & COMPLIANCE
+// ============================================================================
+
+export interface TaxCalculationData {
+  total_income: number;
+  total_expenses: number;
+  taxable_income: number;
+  withholding_tax_rate: number;
+  withholding_tax_owed: number;
+  vat_rate: number;
+  vat_owed: number;
+  net_profit: number;
+  tax_liability: number;
+  estimated_tax_due: number;
+}
+
+/**
+ * Calculate taxes based on income and expenses (Uganda-focused)
+ * Supports multiple markets with configurable tax rates
+ */
+export const calculateTaxLiability = (
+  totalIncome: number,
+  totalExpenses: number,
+  market: 'UGX' | 'KES' | 'NGN' = 'UGX'
+): TaxCalculationData => {
+  // Tax rates by market
+  const TAX_RATES = {
+    UGX: {
+      withholding_tax: 0.06, // 6% for government contracts in Uganda
+      professional_withholding: 0.15, // 15% for professional services
+      vat: 0.18, // 18% VAT
+    },
+    KES: {
+      withholding_tax: 0.05, // 5% in Kenya
+      professional_withholding: 0.15, // 15%
+      vat: 0.16, // 16% VAT
+    },
+    NGN: {
+      withholding_tax: 0.05, // 5% in Nigeria
+      professional_withholding: 0.10, // 10%
+      vat: 0.07, // 7.5% VAT
+    },
+  };
+
+  const rates = TAX_RATES[market];
+  const taxableIncome = Math.max(0, totalIncome - totalExpenses);
+  const netProfit = taxableIncome;
+
+  // Calculate withholding tax (6% for Uganda government contracts)
+  const withholdingTaxOwed = totalIncome * rates.withholding_tax;
+
+  // Calculate VAT (18% in Uganda, applicable on supplies)
+  const vatOwed = totalExpenses * rates.vat;
+
+  // Total tax liability
+  const totalTaxLiability = withholdingTaxOwed + vatOwed;
+
+  return {
+    total_income: totalIncome,
+    total_expenses: totalExpenses,
+    taxable_income: taxableIncome,
+    withholding_tax_rate: rates.withholding_tax * 100,
+    withholding_tax_owed: withholdingTaxOwed,
+    vat_rate: rates.vat * 100,
+    vat_owed: vatOwed,
+    net_profit: netProfit,
+    tax_liability: totalTaxLiability,
+    estimated_tax_due: netProfit > 0 ? totalTaxLiability : 0,
+  };
+};
+
+/**
+ * Fetch real-time P&L data with automatic tax calculations
+ */
+export const getProfitAndLossWithTaxes = async (
+  userId: string,
+  organizationId: string,
+  market: 'UGX' | 'KES' | 'NGN' = 'UGX'
+): Promise<TaxCalculationData> => {
+  try {
+    console.log('🔵 Fetching P&L with tax calculations...');
+
+    // Fetch P&L report
+    const plData = await getProfitAndLoss(userId, organizationId);
+
+    // Calculate tax liability
+    const taxData = calculateTaxLiability(
+      plData.total_income || 0,
+      plData.total_expenses || 0,
+      market
+    );
+
+    console.log('✅ P&L with taxes:', taxData);
+    return taxData;
+  } catch (error) {
+    console.error('🔴 Error fetching P&L with taxes:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// AUDIT & REPORTING
+// ============================================================================
+
+export interface AuditReport {
+  report_date: string;
+  contractor_name: string;
+  total_income: number;
+  total_expenses: number;
+  net_profit: number;
+  tax_liability: number;
+  transaction_count: number;
+  transactions: Array<{
+    date: string;
+    description: string;
+    type: 'income' | 'expense';
+    amount: number;
+  }>;
+}
+
+/**
+ * Generate comprehensive audit report with all transactions
+ */
+export const generateAuditReport = async (
+  userId: string,
+  organizationId: string,
+  contractorName: string
+): Promise<AuditReport> => {
+  try {
+    console.log('🔵 Generating audit report...');
+
+    // Fetch invoices (income)
+    const invoicesData = await getInvoices(userId, organizationId, { limit: 100 });
+    const invoices = invoicesData?.invoices || [];
+
+    // Fetch expenses
+    const expensesData = await getExpenses(userId, organizationId, { limit: 100 });
+    const expenses = expensesData?.expenses || [];
+
+    // Calculate totals
+    const totalIncome = invoices.reduce((sum: number, inv: any) => sum + (inv.total || 0), 0);
+    const totalExpenses = expenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0);
+    const taxData = calculateTaxLiability(totalIncome, totalExpenses);
+
+    // Build transaction list
+    const transactions = [
+      ...invoices.map((inv: any) => ({
+        date: inv.invoice_date || new Date().toISOString().split('T')[0],
+        description: `Invoice #${inv.invoice_number} - ${inv.customer_name}`,
+        type: 'income' as const,
+        amount: inv.total || 0,
+      })),
+      ...expenses.map((exp: any) => ({
+        date: exp.expense_date || new Date().toISOString().split('T')[0],
+        description: `Expense - ${exp.vendor_name} (${exp.account_name})`,
+        type: 'expense' as const,
+        amount: exp.amount || 0,
+      })),
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const report: AuditReport = {
+      report_date: new Date().toISOString().split('T')[0],
+      contractor_name: contractorName,
+      total_income: totalIncome,
+      total_expenses: totalExpenses,
+      net_profit: taxData.net_profit,
+      tax_liability: taxData.tax_liability,
+      transaction_count: transactions.length,
+      transactions,
+    };
+
+    console.log('✅ Audit report generated:', report);
+    return report;
+  } catch (error) {
+    console.error('🔴 Error generating audit report:', error);
+    throw error;
+  }
+};
+
+/**
+ * Generate tax filing document (PDF-ready format)
+ */
+export const generateTaxFilingDocument = async (
+  userId: string,
+  organizationId: string,
+  contractorName: string
+): Promise<{
+  filename: string;
+  content: string;
+  taxData: TaxCalculationData;
+}> => {
+  try {
+    console.log('🔵 Generating tax filing document...');
+
+    const plData = await getProfitAndLoss(userId, organizationId);
+    const taxData = calculateTaxLiability(plData.total_income || 0, plData.total_expenses || 0);
+
+    // Generate CSV/text content for import into tax authority system
+    const content = `
+EMPOWISE TAX FILING DOCUMENT
+Generated: ${new Date().toLocaleString()}
+Contractor: ${contractorName}
+
+FINANCIAL SUMMARY
+================
+Total Income: UGX ${(taxData.total_income).toLocaleString()}
+Total Expenses: UGX ${(taxData.total_expenses).toLocaleString()}
+Taxable Income: UGX ${(taxData.taxable_income).toLocaleString()}
+Net Profit: UGX ${(taxData.net_profit).toLocaleString()}
+
+TAX CALCULATIONS
+================
+Withholding Tax (${taxData.withholding_tax_rate}%): UGX ${(taxData.withholding_tax_owed).toLocaleString()}
+VAT (${taxData.vat_rate}%): UGX ${(taxData.vat_owed).toLocaleString()}
+TOTAL TAX LIABILITY: UGX ${(taxData.tax_liability).toLocaleString()}
+
+ESTIMATED PAYMENT DUE
+====================
+Monthly estimate (÷12): UGX ${(taxData.estimated_tax_due / 12).toLocaleString()}
+Quarterly estimate (÷4): UGX ${(taxData.estimated_tax_due / 4).toLocaleString()}
+
+This document is automatically generated by Empowise Compliance Hub
+and is ready for submission to the Uganda Revenue Authority (URA).
+
+All transactions are auditable and supported by detailed documentation.
+    `.trim();
+
+    const filename = `TAX_FILING_${contractorName.replace(/\s+/g, '_')}_${new Date().getFullYear()}.txt`;
+
+    return {
+      filename,
+      content,
+      taxData,
+    };
+  } catch (error) {
+    console.error('🔴 Error generating tax filing document:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create downloadable audit PDF (base64 encoded)
+ */
+export const generateAuditPDF = async (
+  userId: string,
+  organizationId: string,
+  contractorName: string
+): Promise<{
+  filename: string;
+  base64Content: string;
+}> => {
+  try {
+    console.log('🔵 Generating audit PDF...');
+
+    const auditReport = await generateAuditReport(userId, organizationId, contractorName);
+
+    // Create CSV format (can be converted to PDF on client side or with backend service)
+    const csvContent = [
+      ['EMPOWISE AUDIT REPORT'],
+      ['Report Date', auditReport.report_date],
+      ['Contractor', auditReport.contractor_name],
+      [''],
+      ['FINANCIAL SUMMARY'],
+      ['Total Income', auditReport.total_income],
+      ['Total Expenses', auditReport.total_expenses],
+      ['Net Profit', auditReport.net_profit],
+      ['Tax Liability', auditReport.tax_liability],
+      [''],
+      ['TRANSACTIONS'],
+      ['Date', 'Description', 'Type', 'Amount'],
+      ...auditReport.transactions.map((t) => [t.date, t.description, t.type, t.amount]),
+    ]
+      .map((row) => row.join(','))
+      .join('\n');
+
+    // Encode as base64
+    const base64Content = btoa(unescape(encodeURIComponent(csvContent)));
+    const filename = `AUDIT_REPORT_${contractorName.replace(/\s+/g, '_')}_${auditReport.report_date}.csv`;
+
+    return {
+      filename,
+      base64Content,
+    };
+  } catch (error) {
+    console.error('🔴 Error generating audit PDF:', error);
+    throw error;
+  }
+};

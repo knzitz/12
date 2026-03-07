@@ -28,12 +28,12 @@ import Books from './pages/Books';
 import BooksCallback from './pages/BooksCallback';
 
 // EMPOWISE CONTRACTOR ROUTES (New)
-// TODO: Create these page components
-// import Tenders from './pages/contractor/Tenders';
-// import ContractDetails from './pages/contractor/ContractDetails';
-// import ComplianceVault from './pages/contractor/ComplianceVault';
-// import ProfessionalDirectory from './pages/contractor/ProfessionalDirectory';
-// import WorksGallery from './pages/contractor/WorksGallery';
+import ComplianceVault from './pages/ComplianceVault';
+import MilestoneVerification from './pages/MilestoneVerification';
+import ProfessionalDirectory from './pages/ProfessionalDirectory';
+// Tenders and WorksGallery will use existing Projects and Media pages for now
+import Projects from './pages/Projects'; // Reused as Tenders
+import Media from './pages/Media'; // Reused as WorksGallery
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -184,28 +184,63 @@ function App() {
         {/* EMPOWISE CONTRACTOR PLATFORM ROUTES (NEW) */}
         {/* ============================================================================ */}
 
-        {/* Tenders & Bidding */}
-        {/* <Route path="/tenders" element={<Tenders />} /> */}
-        {/* <Route path="/tenders/:tenderId" element={<TenderDetails />} /> */}
-        {/* <Route path="/tenders/:tenderId/bid" element={<CreateBid />} /> */}
+        {/* Tenders & Bidding (uses Projects page) */}
+        <Route
+          path="/tenders"
+          element={
+            <ProtectedRoute>
+              <Projects />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Contract Management */}
-        {/* <Route path="/contracts" element={<ContractsList />} /> */}
-        {/* <Route path="/contracts/:contractId" element={<ContractDetails />} /> */}
-        {/* <Route path="/contracts/:contractId/milestones" element={<MilestonesList />} /> */}
-        {/* <Route path="/milestones/:milestoneId/verify" element={<PhotoLockVerification />} /> */}
+        {/* Contract Management - Milestone Verification (Photo-Lock) */}
+        <Route
+          path="/contracts"
+          element={
+            <ProtectedRoute>
+              <Projects /> {/* Shows list of contractor's contracts */}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contracts/:contractId"
+          element={
+            <ProtectedRoute>
+              <MilestoneVerification />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Compliance & Documents */}
-        {/* <Route path="/compliance" element={<ComplianceVault />} /> */}
-        {/* <Route path="/compliance/renewals" element={<ComplianceRenewals />} /> */}
+        {/* Compliance & Documents Vault */}
+        <Route
+          path="/compliance"
+          element={
+            <ProtectedRoute>
+              <ComplianceVault />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Professional Network */}
-        {/* <Route path="/directory" element={<ProfessionalDirectory />} /> */}
-        {/* <Route path="/directory/:contractorId" element={<ContractorProfile />} /> */}
-        {/* <Route path="/messages" element={<DirectMessages />} /> */}
+        {/* Professional Network & Directory */}
+        <Route
+          path="/directory"
+          element={
+            <ProtectedRoute>
+              <ProfessionalDirectory />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Works Gallery */}
-        {/* <Route path="/works-gallery" element={<WorksGallery />} /> */}
+        {/* Works Gallery (uses Media page) */}
+        <Route
+          path="/works-gallery"
+          element={
+            <ProtectedRoute>
+              <Media />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
