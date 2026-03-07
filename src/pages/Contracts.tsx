@@ -46,9 +46,16 @@ export default function Contracts() {
         .from('contractor_profiles')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) throw profileError;
+
+      // If no profile exists, redirect to onboarding
+      if (!profileData) {
+        window.location.href = '/onboarding';
+        return;
+      }
+
       setContractorId(profileData.id);
 
       // Get contracts
