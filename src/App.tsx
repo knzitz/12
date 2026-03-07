@@ -31,9 +31,7 @@ import BooksCallback from './pages/BooksCallback';
 import ComplianceVault from './pages/ComplianceVault';
 import MilestoneVerification from './pages/MilestoneVerification';
 import ProfessionalDirectory from './pages/ProfessionalDirectory';
-// Tenders and WorksGallery will use existing Projects and Media pages for now
-import Projects from './pages/Projects'; // Reused as Tenders
-import Media from './pages/Media'; // Reused as WorksGallery
+// Note: Tenders and WorksGallery reuse existing Projects and Media pages
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
