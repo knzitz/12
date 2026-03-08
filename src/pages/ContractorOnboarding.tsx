@@ -46,7 +46,7 @@ export default function ContractorOnboarding() {
         .from('contractor_profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (data && !fetchError) {
         setFormData({
@@ -56,7 +56,7 @@ export default function ContractorOnboarding() {
           industry_category: data.industry_category || 'project_management',
           contact_person: data.contact_person || '',
           phone: data.phone || '',
-          email: data.email || '',
+          email: data.email || user.email || '',
           company_description: data.company_description || '',
           years_in_business: data.years_in_business || 1,
           market_code: data.market_code || 'UGX',

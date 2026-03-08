@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { uploadToB2 } from '../lib/b2Upload';
 import { AlertCircle, CheckCircle, Upload, Loader } from 'lucide-react';
 
 interface DocumentUploadProps {
@@ -62,15 +63,15 @@ export default function ComplianceDocumentUpload({ contractorId, onSuccess }: Do
     try {
       let documentUrl = null;
 
-      // Upload file if provided
+      // Upload file to Backblaze B2 if provided
       if (file) {
-        const fileName = `${contractorId}/${formData.reminder_type}/${Date.now()}-${file.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('compliance-documents')
-          .upload(fileName, file);
+        const { publicUrl, error: uploadError } = await uploadToB2(
+          file,
+          `compliance-documents/${contractorId}`
+        );
 
-        if (uploadError) throw uploadError;
-        documentUrl = uploadData?.path || null;
+        if (uploadError) throw new Error(uploadError);
+        documentUrl = publicUrl;
       }
 
       // Save to tax_reminders table

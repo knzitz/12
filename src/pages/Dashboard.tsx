@@ -37,11 +37,26 @@ export default function Dashboard() {
     try {
       setLoading(true);
 
+      // First, get contractor profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('contractor_profiles')
+        .select('id')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      // If no contractor profile, redirect to onboarding
+      if (!profileData) {
+        window.location.href = '/onboarding';
+        return;
+      }
+
       // Load compliance alerts (tax reminders)
       const { data: reminders } = await supabase
         .from('tax_reminders')
         .select('*')
-        .eq('contractor_id', user?.id)
+        .eq('contractor_id', profileData.id)
         .order('expiry_date', { ascending: true })
         .limit(5);
 
@@ -76,7 +91,7 @@ export default function Dashboard() {
             status
           )
         `)
-        .eq('contractor_id', user?.id)
+        .eq('contractor_id', profileData.id)
         .eq('status', 'active')
         .limit(5);
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Search, Filter, MapPin, Calendar, DollarSign, ChevronRight } from 'lucide-react';
+import { Search, Filter, MapPin, Calendar, DollarSign, ChevronRight, Loader } from 'lucide-react';
 
 interface Tender {
   id: string;

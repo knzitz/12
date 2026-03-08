@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { uploadToB2 } from '../lib/b2Upload';
 import { AlertCircle, CheckCircle, Upload, Loader, MapPin, Camera } from 'lucide-react';
 
 interface PhotoLockProps {
@@ -85,13 +86,13 @@ export default function PhotoLockUploadForm({ milestoneId, contractorId, onSucce
         throw new Error('Please enable location services or manually enter GPS coordinates');
       }
 
-      // Upload photo to Supabase Storage
-      const fileName = `${contractorId}/${milestoneId}/${Date.now()}-${file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('field-verification')
-        .upload(fileName, file);
+      // Upload photo to Backblaze B2
+      const { publicUrl, error: uploadError } = await uploadToB2(
+        file,
+        `field-verification/${contractorId}/${milestoneId}`
+      );
 
-      if (uploadError) throw uploadError;
+      if (uploadError) throw new Error(uploadError);
 
       // Extract EXIF data (simplified - in production use a proper library)
       const photoMetadata = {
@@ -109,7 +110,7 @@ export default function PhotoLockUploadForm({ milestoneId, contractorId, onSucce
           contractor_id: contractorId,
           task_name: formData.task_name,
           task_description: formData.task_description,
-          photo_url: uploadData?.path || '',
+          photo_url: publicUrl,
           photo_upload_timestamp: new Date().toISOString(),
           photo_metadata: photoMetadata,
           gps_latitude: parseFloat(formData.gps_latitude),
