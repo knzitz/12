@@ -2,9 +2,14 @@ import { S3Client, PutObjectCommand } from "npm:@aws-sdk/client-s3";
 
 const B2_KEY_ID = Deno.env.get("B2_KEY_ID");
 const B2_APPLICATION_KEY = Deno.env.get("B2_APPLICATION_KEY");
-const B2_S3_ENDPOINT = Deno.env.get("B2_S3_ENDPOINT");
+let B2_S3_ENDPOINT = Deno.env.get("B2_S3_ENDPOINT");
 const B2_BUCKET_NAME = Deno.env.get("B2_BUCKET_NAME");
 const B2_PUBLIC_URL = Deno.env.get("B2_PUBLIC_URL");
+
+// Ensure endpoint has protocol
+if (B2_S3_ENDPOINT && !B2_S3_ENDPOINT.startsWith("http")) {
+  B2_S3_ENDPOINT = `https://${B2_S3_ENDPOINT}`;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
