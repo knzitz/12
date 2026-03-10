@@ -527,7 +527,19 @@ CREATE POLICY "Users can update own contractor profile" ON contractor_profiles
 
 -- Tax reminders: Only see own
 CREATE POLICY "Users can only see their own tax reminders" ON tax_reminders
-  FOR SELECT USING (auth.uid() IN (SELECT user_id FROM contractor_profiles WHERE id = contractor_id));
+  FOR SELECT USING (contractor_id = auth.uid());
+
+-- Tax reminders: Can insert own
+CREATE POLICY "Users can insert their own tax reminders" ON tax_reminders
+  FOR INSERT WITH CHECK (contractor_id = auth.uid());
+
+-- Tax reminders: Can update own
+CREATE POLICY "Users can update their own tax reminders" ON tax_reminders
+  FOR UPDATE USING (contractor_id = auth.uid());
+
+-- Tax reminders: Can delete own
+CREATE POLICY "Users can delete their own tax reminders" ON tax_reminders
+  FOR DELETE USING (contractor_id = auth.uid());
 
 -- Contracts: Only see own
 CREATE POLICY "Users can only see their own contracts" ON contracts

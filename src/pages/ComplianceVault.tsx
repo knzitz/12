@@ -49,15 +49,9 @@ export default function ComplianceVault() {
         .from('contractor_profiles')
         .select('id')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .single();
 
       if (profileError) throw profileError;
-
-      // If no profile exists, redirect to onboarding
-      if (!profileData) {
-        window.location.href = '/onboarding';
-        return;
-      }
 
       setContractorId(profileData.id);
 
@@ -65,7 +59,7 @@ export default function ComplianceVault() {
       const { data: docsData, error: docsError } = await supabase
         .from('tax_reminders')
         .select('*')
-        .eq('contractor_id', profileData.id)
+        .eq('contractor_id', user.id)
         .order('expiry_date', { ascending: true });
 
       if (docsError) throw docsError;
@@ -279,11 +273,11 @@ export default function ComplianceVault() {
         )}
 
         {/* Add Document Form */}
-        {contractorId && (
+        {contractorId && user && (
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Add New Document</h2>
             <ComplianceDocumentUpload
-              contractorId={contractorId}
+              contractorId={user.id}
               onSuccess={fetchContractorAndDocuments}
             />
           </div>

@@ -37,20 +37,14 @@ export default function Dashboard() {
     try {
       setLoading(true);
 
-      // First, get contractor profile
+      // Get contractor profile
       const { data: profileData, error: profileError } = await supabase
         .from('contractor_profiles')
         .select('id')
         .eq('user_id', user?.id)
-        .maybeSingle();
+        .single();
 
       if (profileError) throw profileError;
-
-      // If no contractor profile, redirect to onboarding
-      if (!profileData) {
-        window.location.href = '/onboarding';
-        return;
-      }
 
       // Load compliance alerts (tax reminders)
       const { data: reminders } = await supabase
