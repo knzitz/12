@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { AlertCircle, Loader } from 'lucide-react';
 
 interface ContractorFormData {
   company_name: string;
@@ -18,9 +19,9 @@ interface ContractorFormData {
 
 export default function ContractorOnboarding() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState<ContractorFormData>({
     company_name: '',
     registration_number: '',
@@ -33,40 +34,6 @@ export default function ContractorOnboarding() {
     years_in_business: 1,
     market_code: 'UGX',
   });
-
-  useEffect(() => {
-    // Check if contractor profile already exists
-    fetchContractorProfile();
-  }, [user]);
-
-  const fetchContractorProfile = async () => {
-    if (!user) return;
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('contractor_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (data && !fetchError) {
-        setFormData({
-          company_name: data.company_name || '',
-          registration_number: data.registration_number || '',
-          company_type: data.company_type || 'services',
-          industry_category: data.industry_category || 'project_management',
-          contact_person: data.contact_person || '',
-          phone: data.phone || '',
-          email: data.email || user.email || '',
-          company_description: data.company_description || '',
-          years_in_business: data.years_in_business || 1,
-          market_code: data.market_code || 'UGX',
-        });
-        setSuccess(true);
-      }
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-    }
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -99,28 +66,12 @@ export default function ContractorOnboarding() {
 
       if (insertError) throw insertError;
 
-      setSuccess(true);
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1500);
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       setError(err.message || 'Failed to save profile');
-    } finally {
       setLoading(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Profile Created!</h2>
-          <p className="text-gray-600 mb-6">Your contractor profile is ready. Redirecting to dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 p-4">
