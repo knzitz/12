@@ -30,6 +30,7 @@ import BooksCallback from './pages/BooksCallback';
 
 // EMPOWISE CONTRACTOR ROUTES (New)
 import ContractorOnboarding from './pages/ContractorOnboarding';
+import CompanyProfile from './pages/CompanyProfile';
 import Tenders from './pages/Tenders';
 import Contracts from './pages/Contracts';
 import ComplianceVault from './pages/ComplianceVault';
@@ -58,7 +59,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function ContractorProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [contractorExists, setContractorExists] = useState<boolean | null>(null);
-  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     if (user && !loading) {
@@ -67,14 +67,12 @@ function ContractorProtectedRoute({ children }: { children: React.ReactNode }) {
   }, [user, loading]);
 
   const checkContractorProfile = async () => {
-    setIsChecking(true);
     const { data } = await supabase
       .from('contractor_profiles')
       .select('id')
       .eq('user_id', user?.id)
       .maybeSingle();
     setContractorExists(!!data);
-    setIsChecking(false);
   };
 
   if (loading) {
@@ -89,14 +87,17 @@ function ContractorProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/signin" replace />;
   }
 
-  if (contractorExists === null || isChecking) {
-    return <Navigate to="/onboarding" replace />;
+  // While checking contractor status, return nothing (silently check)
+  if (contractorExists === null) {
+    return null;
   }
 
+  // If contractor doesn't exist, redirect to onboarding
   if (!contractorExists) {
     return <Navigate to="/onboarding" replace />;
   }
 
+  // Contractor exists, show the page
   return <>{children}</>;
 }
 
@@ -289,13 +290,23 @@ function App() {
           }
         />
 
-        {/* Works Gallery (uses Media page) */}
+        {/* Projects Gallery (uses Media page) */}
         <Route
-          path="/works-gallery"
+          path="/projects"
           element={
-            <ProtectedRoute>
+            <ContractorProtectedRoute>
               <Media />
-            </ProtectedRoute>
+            </ContractorProtectedRoute>
+          }
+        />
+
+        {/* Company Profile Management */}
+        <Route
+          path="/company-profile"
+          element={
+            <ContractorProtectedRoute>
+              <CompanyProfile />
+            </ContractorProtectedRoute>
           }
         />
 

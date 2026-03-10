@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { AlertCircle, CheckCircle, Loader } from 'lucide-react';
@@ -18,9 +19,11 @@ interface ContractorFormData {
 
 export default function ContractorOnboarding() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [profileExists, setProfileExists] = useState<boolean | null>(null);
   const [formData, setFormData] = useState<ContractorFormData>({
     company_name: '',
     registration_number: '',
@@ -36,35 +39,27 @@ export default function ContractorOnboarding() {
 
   useEffect(() => {
     // Check if contractor profile already exists
-    fetchContractorProfile();
+    if (user) {
+      checkExistingProfile();
+    }
   }, [user]);
 
-  const fetchContractorProfile = async () => {
-    if (!user) return;
+  const checkExistingProfile = async () => {
     try {
-      const { data, error: fetchError } = await supabase
+      const { data } = await supabase
         .from('contractor_profiles')
-        .select('*')
-        .eq('user_id', user.id)
+        .select('id')
+        .eq('user_id', user?.id)
         .maybeSingle();
 
-      if (data && !fetchError) {
-        setFormData({
-          company_name: data.company_name || '',
-          registration_number: data.registration_number || '',
-          company_type: data.company_type || 'services',
-          industry_category: data.industry_category || 'project_management',
-          contact_person: data.contact_person || '',
-          phone: data.phone || '',
-          email: data.email || user.email || '',
-          company_description: data.company_description || '',
-          years_in_business: data.years_in_business || 1,
-          market_code: data.market_code || 'UGX',
-        });
-        setSuccess(true);
+      setProfileExists(!!data);
+
+      // If profile already exists, redirect to dashboard
+      if (data) {
+        navigate('/dashboard', { replace: true });
       }
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      console.error('Error checking profile:', err);
     }
   };
 
@@ -99,13 +94,17 @@ export default function ContractorOnboarding() {
 
       if (insertError) throw insertError;
 
-      setSuccess(true);
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1500);
+      // Show success message only for new profiles
+      if (!profileExists) {
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 2000);
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to save profile');
-    } finally {
       setLoading(false);
     }
   };
