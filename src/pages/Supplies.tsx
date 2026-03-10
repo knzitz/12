@@ -17,9 +17,11 @@ import {
   Package,
   DollarSign,
   Download,
+  Upload,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSupplies, Supply, CartItem } from '../hooks/useSupplies';
+import { useToast } from '../hooks/useToast';
 
 const SUPPLY_CATEGORIES = [
   'All',
@@ -40,8 +42,18 @@ const SORT_OPTIONS = [
   { value: 'price-high', label: 'Price: High to Low' },
 ];
 
+interface SupplyFormData {
+  name: string;
+  category: string;
+  description: string;
+  unit_price: string;
+  stock_quantity: string;
+  unit_type: string;
+}
+
 export default function Supplies() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const {
     supplies,
     filteredSupplies,
@@ -55,6 +67,7 @@ export default function Supplies() {
     updateCartQuantity,
     createOrder,
     toggleFavorite,
+    saveSupply,
   } = useSupplies();
 
   const [activeTab, setActiveTab] = useState<'browse' | 'cart' | 'orders' | 'sell'>('browse');
@@ -66,6 +79,18 @@ export default function Supplies() {
   const [showDetails, setShowDetails] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [userOrders, setUserOrders] = useState<any[]>([]);
+
+  // Form state for Sell tab
+  const [formData, setFormData] = useState<SupplyFormData>({
+    name: '',
+    category: 'Equipment',
+    description: '',
+    unit_price: '',
+    stock_quantity: '',
+    unit_type: 'Piece',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Initialize
   useEffect(() => {
@@ -90,7 +115,84 @@ export default function Supplies() {
   const handleAddToCart = async (supply: Supply) => {
     const success = await addToCart(supply.id);
     if (success) {
-      alert(`${supply.name} added to cart!`);
+      showToast(`${supply.name} added to cart!`, 'success');
+    }
+  };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    setFormError(null);
+  };
+
+  const validateForm = (): boolean => {
+    if (!formData.name.trim()) {
+      setFormError('Supply name is required');
+      return false;
+    }
+    if (!formData.category || formData.category === 'Select Category') {
+      setFormError('Please select a category');
+      return false;
+    }
+    if (!formData.unit_price || parseFloat(formData.unit_price) <= 0) {
+      setFormError('Please enter a valid price');
+      return false;
+    }
+    if (!formData.stock_quantity || parseInt(formData.stock_quantity) < 0) {
+      setFormError('Please enter a valid stock quantity');
+      return false;
+    }
+    if (!formData.unit_type || formData.unit_type === 'Unit Type (Piece, Box, Kg...)') {
+      setFormError('Please select a unit type');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmitSupply = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setFormError(null);
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await saveSupply({
+        name: formData.name,
+        category: formData.category,
+        description: formData.description,
+        unit_price: parseFloat(formData.unit_price),
+        stock_quantity: parseInt(formData.stock_quantity),
+        unit_type: formData.unit_type,
+        image_url: '',
+        status: 'active',
+      });
+
+      if (result) {
+        showToast('Supply listed successfully!', 'success');
+        // Reset form
+        setFormData({
+          name: '',
+          category: 'Equipment',
+          description: '',
+          unit_price: '',
+          stock_quantity: '',
+          unit_type: 'Piece',
+        });
+        // Refresh supplies list
+        await fetchSupplies({ category: 'All', search: '', sortBy: 'newest' });
+      } else {
+        setFormError('Failed to list supply. Please try again.');
+      }
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -111,12 +213,12 @@ export default function Supplies() {
       {/* Navigation Tabs */}
       <div className="bg-white border-b border-gray-200 sticky top-20 z-40">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex space-x-8">
+          <div className="flex space-x-8 overflow-x-auto">
             {['browse', 'cart', 'orders', 'sell'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
-                className={`px-4 py-4 font-medium border-b-2 transition-colors ${
+                className={`px-4 py-4 font-medium border-b-2 transition-colors whitespace-nowrap ${
                   activeTab === tab
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -220,7 +322,7 @@ export default function Supplies() {
                 </div>
               ) : filteredSupplies.length === 0 ? (
                 <div className="bg-white rounded-lg p-12 text-center">
-                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900">No supplies found</h3>
                   <p className="text-gray-600 mt-2">Try adjusting your search or filters</p>
                 </div>
@@ -348,43 +450,169 @@ export default function Supplies() {
         {activeTab === 'sell' && (
           <div>
             <h2 className="text-2xl font-bold mb-6">List Your Supplies</h2>
-            <div className="bg-white rounded-lg shadow p-8">
-              <div className="max-w-2xl">
-                <h3 className="text-lg font-semibold mb-4">Add New Supply</h3>
-                <form className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 bg-white rounded-lg shadow p-8">
+                <h3 className="text-lg font-semibold mb-6">Add New Supply</h3>
+
+                {/* Error Message */}
+                {formError && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-red-900">Error</h4>
+                      <p className="text-sm text-red-700">{formError}</p>
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmitSupply} className="space-y-4">
+                  {/* Supply Name & Category */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="Supply Name"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Supply Name *</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleFormChange}
+                        placeholder="e.g., Steel Pipes, Cement Bags..."
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                      <select
+                        name="category"
+                        value={formData.category}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option>Select Category</option>
+                        {SUPPLY_CATEGORIES.slice(1).map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleFormChange}
+                      placeholder="Describe your supply, specifications, quality, etc..."
+                      rows={4}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <option>Select Category</option>
-                      {SUPPLY_CATEGORIES.slice(1).map((cat) => (
-                        <option key={cat}>{cat}</option>
-                      ))}
-                    </select>
                   </div>
-                  <textarea
-                    placeholder="Description"
-                    rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+
+                  {/* Price, Quantity, Unit Type */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <input type="number" placeholder="Unit Price (UGX)" className="px-4 py-2 border border-gray-300 rounded-lg" />
-                    <input type="number" placeholder="Stock Quantity" className="px-4 py-2 border border-gray-300 rounded-lg" />
-                    <select className="px-4 py-2 border border-gray-300 rounded-lg">
-                      <option>Unit Type (Piece, Box, Kg...)</option>
-                      <option>Piece</option>
-                      <option>Box</option>
-                      <option>Kg</option>
-                      <option>Liter</option>
-                    </select>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price (UGX) *</label>
+                      <input
+                        type="number"
+                        name="unit_price"
+                        value={formData.unit_price}
+                        onChange={handleFormChange}
+                        placeholder="e.g., 5000"
+                        min="0"
+                        step="0.01"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity *</label>
+                      <input
+                        type="number"
+                        name="stock_quantity"
+                        value={formData.stock_quantity}
+                        onChange={handleFormChange}
+                        placeholder="e.g., 100"
+                        min="0"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Unit Type *</label>
+                      <select
+                        name="unit_type"
+                        value={formData.unit_type}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option>Unit Type (Piece, Box, Kg...)</option>
+                        <option value="Piece">Piece</option>
+                        <option value="Box">Box</option>
+                        <option value="Kg">Kilogram (Kg)</option>
+                        <option value="Liter">Liter</option>
+                        <option value="Meter">Meter</option>
+                        <option value="Bag">Bag</option>
+                        <option value="Gallon">Gallon</option>
+                        <option value="Roll">Roll</option>
+                      </select>
+                    </div>
                   </div>
-                  <button type="submit" className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-                    List Supply
-                  </button>
+
+                  {/* Submit Button */}
+                  <div className="pt-4">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-medium flex items-center justify-center gap-2 transition-colors"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                          Listing Supply...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5" />
+                          List Supply
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-gray-600 mt-2">* Required fields</p>
                 </form>
+              </div>
+
+              {/* Info Card */}
+              <div className="lg:col-span-1">
+                <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                  <h4 className="font-semibold text-gray-900 mb-4">Tips for Listing</h4>
+                  <ul className="space-y-3 text-sm text-gray-700">
+                    <li className="flex gap-2">
+                      <Check className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <span>Use clear, descriptive names</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <Check className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <span>Provide detailed descriptions</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <Check className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <span>Price competitively</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <Check className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <span>Keep stock updated</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <Check className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <span>Respond to inquiries quickly</span>
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
