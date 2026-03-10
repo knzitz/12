@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { supabase } from './lib/supabase';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import SignUp from './pages/SignUp';
@@ -54,6 +55,44 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function ContractorProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const [contractorExists, setContractorExists] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (user && !loading) {
+      checkContractorProfile();
+    }
+  }, [user, loading]);
+
+  const checkContractorProfile = async () => {
+    const { data } = await supabase
+      .from('contractor_profiles')
+      .select('id')
+      .eq('user_id', user?.id)
+      .maybeSingle();
+    setContractorExists(!!data);
+  };
+
+  if (loading || contractorExists === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
+        <div className="text-xl font-medium text-slate-700">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  if (!contractorExists) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function App() {
   const { loading } = useAuth();
 
@@ -83,9 +122,9 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <ContractorProtectedRoute>
               <Dashboard />
-            </ProtectedRoute>
+            </ContractorProtectedRoute>
           }
         />
         <Route
@@ -199,9 +238,9 @@ function App() {
         <Route
           path="/tenders"
           element={
-            <ProtectedRoute>
+            <ContractorProtectedRoute>
               <Tenders />
-            </ProtectedRoute>
+            </ContractorProtectedRoute>
           }
         />
 
@@ -209,17 +248,17 @@ function App() {
         <Route
           path="/contracts"
           element={
-            <ProtectedRoute>
+            <ContractorProtectedRoute>
               <Contracts />
-            </ProtectedRoute>
+            </ContractorProtectedRoute>
           }
         />
         <Route
           path="/contracts/:contractId"
           element={
-            <ProtectedRoute>
+            <ContractorProtectedRoute>
               <MilestoneVerification />
-            </ProtectedRoute>
+            </ContractorProtectedRoute>
           }
         />
 
@@ -227,9 +266,9 @@ function App() {
         <Route
           path="/compliance"
           element={
-            <ProtectedRoute>
+            <ContractorProtectedRoute>
               <ComplianceVault />
-            </ProtectedRoute>
+            </ContractorProtectedRoute>
           }
         />
 
@@ -237,9 +276,9 @@ function App() {
         <Route
           path="/directory"
           element={
-            <ProtectedRoute>
+            <ContractorProtectedRoute>
               <ProfessionalDirectory />
-            </ProtectedRoute>
+            </ContractorProtectedRoute>
           }
         />
 
