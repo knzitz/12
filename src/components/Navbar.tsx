@@ -21,11 +21,12 @@ export default function Navbar() {
       // Contractor/Business routes
       return [
         { path: '/dashboard', label: 'Dashboard' },
+        { path: '/compliance', label: 'Compliance' },
         { path: '/tenders', label: 'Tenders' },
         { path: '/contracts', label: 'Contracts' },
-        { path: '/compliance', label: 'Compliance' },
+        { path: '/projects', label: 'Projects' },
+        { path: '/company-profile', label: 'Profile' },
         { path: '/directory', label: 'Directory' },
-        { path: '/works-gallery', label: 'Gallery' },
         { path: '/books', label: 'Books' },
       ];
     } else {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { AlertCircle, Loader } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader } from 'lucide-react';
 
 interface ContractorFormData {
   company_name: string;
@@ -22,6 +22,8 @@ export default function ContractorOnboarding() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [profileExists, setProfileExists] = useState<boolean | null>(null);
   const [formData, setFormData] = useState<ContractorFormData>({
     company_name: '',
     registration_number: '',
@@ -34,6 +36,32 @@ export default function ContractorOnboarding() {
     years_in_business: 1,
     market_code: 'UGX',
   });
+
+  useEffect(() => {
+    // Check if contractor profile already exists
+    if (user) {
+      checkExistingProfile();
+    }
+  }, [user]);
+
+  const checkExistingProfile = async () => {
+    try {
+      const { data } = await supabase
+        .from('contractor_profiles')
+        .select('id')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      setProfileExists(!!data);
+
+      // If profile already exists, redirect to dashboard
+      if (data) {
+        navigate('/dashboard', { replace: true });
+      }
+    } catch (err) {
+      console.error('Error checking profile:', err);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -66,12 +94,32 @@ export default function ContractorOnboarding() {
 
       if (insertError) throw insertError;
 
-      navigate('/dashboard', { replace: true });
+      // Show success message only for new profiles
+      if (!profileExists) {
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 2000);
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to save profile');
       setLoading(false);
     }
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Profile Created!</h2>
+          <p className="text-gray-600 mb-6">Your contractor profile is ready. Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 p-4">

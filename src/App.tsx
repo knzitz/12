@@ -30,6 +30,7 @@ import BooksCallback from './pages/BooksCallback';
 
 // EMPOWISE CONTRACTOR ROUTES (New)
 import ContractorOnboarding from './pages/ContractorOnboarding';
+import CompanyProfile from './pages/CompanyProfile';
 import Tenders from './pages/Tenders';
 import Contracts from './pages/Contracts';
 import ComplianceVault from './pages/ComplianceVault';
@@ -289,13 +290,23 @@ function App() {
           }
         />
 
-        {/* Works Gallery (uses Media page) */}
+        {/* Projects Gallery (uses Media page) */}
         <Route
-          path="/works-gallery"
+          path="/projects"
           element={
-            <ProtectedRoute>
+            <ContractorProtectedRoute>
               <Media />
-            </ProtectedRoute>
+            </ContractorProtectedRoute>
+          }
+        />
+
+        {/* Company Profile Management */}
+        <Route
+          path="/company-profile"
+          element={
+            <ContractorProtectedRoute>
+              <CompanyProfile />
+            </ContractorProtectedRoute>
           }
         />
 
