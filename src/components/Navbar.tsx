@@ -27,12 +27,14 @@ export default function Navbar() {
         { path: '/projects', label: 'Projects' },
         { path: '/company-profile', label: 'Profile' },
         { path: '/directory', label: 'Directory' },
+        { path: '/supplies', label: 'Supplies' },
         { path: '/books', label: 'Books' },
       ];
     } else {
       return [
         { path: '/tenders', label: 'Opportunities' },
         { path: '/directory', label: 'Providers' },
+        { path: '/supplies', label: 'Supplies' },
       ];
     }
   };

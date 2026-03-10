@@ -36,6 +36,7 @@ import Contracts from './pages/Contracts';
 import ComplianceVault from './pages/ComplianceVault';
 import MilestoneVerification from './pages/MilestoneVerification';
 import ProfessionalDirectory from './pages/ProfessionalDirectory';
+import Supplies from './pages/Supplies';
 import SystemStatus from './pages/SystemStatus';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -287,6 +288,16 @@ function App() {
             <ContractorProtectedRoute>
               <ProfessionalDirectory />
             </ContractorProtectedRoute>
+          }
+        />
+
+        {/* Supplies Marketplace */}
+        <Route
+          path="/supplies"
+          element={
+            <ProtectedRoute>
+              <Supplies />
+            </ProtectedRoute>
           }
         />
 
